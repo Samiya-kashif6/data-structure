@@ -1,0 +1,2105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GraphPulse — Social Network Friend Suggestion Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(255, 255, 255, 0.12);
+      --primary: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.25);
+      --accent: #06b6d4;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-subtle: #6b7280;
+      --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    header {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 0.85rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #fff;
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #fff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-badge {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #818cf8;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-left: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 2px 10px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      background: #4f46e5;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      border-color: var(--card-border);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Stats Ribbon */
+    .stats-ribbon {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      padding: 1.25rem 2rem 0;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover {
+      border-color: var(--card-hover);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #fff;
+      font-family: var(--mono);
+    }
+
+    /* Main Layout */
+    .app-container {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 1.5rem;
+      padding: 1.5rem 2rem 2rem;
+      flex: 1;
+    }
+
+    @media (max-width: 1024px) {
+      .app-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left Sidebar: Active User & Recommendations */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .user-selector-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1.25rem;
+    }
+
+    .selector-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    select.user-select {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+    }
+    select.user-select:focus {
+      border-color: var(--primary);
+    }
+
+    .quick-presets {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .preset-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .preset-btn:hover {
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    /* Active User Profile */
+    .profile-banner {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .profile-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 2px solid var(--primary);
+      background: #1e293b;
+    }
+
+    .profile-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .profile-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .profile-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .tag-list {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .tag {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+
+    .tag-comm {
+      background: rgba(6, 182, 212, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+    }
+
+    /* Recommendations Container */
+    .recs-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .recs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 0.25rem;
+    }
+
+    .recs-title {
+      font-size: 1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .badge-count {
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+
+    .rec-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      animation: fadeIn 0.3s ease;
+    }
+    .rec-card:hover {
+      border-color: rgba(99, 102, 241, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .rec-header {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .rec-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--card-border);
+      background: #1e293b;
+    }
+
+    .rec-identity {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .rec-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .rec-location {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .rec-score-pill {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .score-val {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #34d399;
+      font-family: var(--mono);
+    }
+
+    .score-sub {
+      font-size: 0.65rem;
+      color: var(--text-subtle);
+      text-transform: uppercase;
+    }
+
+    .rec-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 0.5rem;
+      border-radius: 8px;
+    }
+
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .metric-name {
+      font-size: 0.65rem;
+      color: var(--text-subtle);
+      text-transform: uppercase;
+    }
+
+    .metric-num {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text);
+      font-family: var(--mono);
+    }
+
+    .rec-reasons {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      border-left: 2px solid var(--primary);
+      padding-left: 0.6rem;
+      margin-left: 0.2rem;
+    }
+
+    .reason-bullet {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .rec-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.25rem;
+    }
+
+    .btn-connect {
+      flex: 2;
+      background: linear-gradient(135deg, var(--primary), #4f46e5);
+      color: #fff;
+      border: none;
+      padding: 0.45rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: filter 0.2s;
+    }
+    .btn-connect:hover {
+      filter: brightness(1.15);
+    }
+
+    .btn-dismiss {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      border: 1px solid var(--card-border);
+      padding: 0.45rem;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .btn-dismiss:hover {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    /* Right Main Panel: Graph Visualizer & Inspector */
+    .main-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .view-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .view-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .view-title {
+      font-size: 1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+    }
+
+    .canvas-container {
+      position: relative;
+      flex: 1;
+      min-height: 520px;
+      background: radial-gradient(circle at center, #151d30 0%, #0c101b 100%);
+      overflow: hidden;
+    }
+
+    .view-mode-pills {
+      display: inline-flex;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+      gap: 3px;
+    }
+
+    .pill-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pill-btn.active {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+
+    .node-tooltip {
+      position: absolute;
+      background: rgba(17, 24, 39, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      font-size: 0.78rem;
+      color: var(--text);
+      pointer-events: none;
+      display: none;
+      z-index: 50;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+      min-width: 170px;
+      transition: opacity 0.15s ease;
+    }
+
+    canvas#graphCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+    canvas#graphCanvas:active {
+      cursor: grabbing;
+    }
+
+    .canvas-legend {
+      position: absolute;
+      bottom: 1rem;
+      left: 1rem;
+      background: rgba(17, 24, 39, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 0.6rem 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .canvas-controls {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .ctrl-btn {
+      width: 32px;
+      height: 32px;
+      background: rgba(17, 24, 39, 0.85);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+    .ctrl-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Algorithm Inspector Tab Content */
+    .inspector-content {
+      display: none;
+      padding: 1.5rem;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .inspector-selectors {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .comp-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .comp-title {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .comp-val {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #fff;
+      font-family: var(--mono);
+    }
+
+    .comp-desc {
+      font-size: 0.72rem;
+      color: var(--text-subtle);
+      line-height: 1.3;
+    }
+
+    /* Workflow & Architecture Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .modal-card {
+      background: #111827;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 900px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 2rem;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .flow-step {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .flow-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .flow-body {
+      flex: 1;
+    }
+
+    .flow-h {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .flow-p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Empty state */
+    .empty-state {
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">GP</div>
+      <div class="brand-title">GraphPulse AI</div>
+      <span class="brand-badge">Engine v1.0</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="openWorkflowModal()">
+        <span>Architecture & Workflow</span>
+      </button>
+      <button class="btn btn-secondary" onclick="resetNetwork()">
+        <span>Reset Graph</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Network Stats Ribbon -->
+  <div class="stats-ribbon">
+    <div class="stat-card">
+      <span class="stat-label">Total Users (V)</span>
+      <span class="stat-value" id="statNodes">--</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Friendships (E)</span>
+      <span class="stat-value" id="statEdges">--</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Avg Degree</span>
+      <span class="stat-value" id="statAvgDeg">--</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Graph Density</span>
+      <span class="stat-value" id="statDensity">--</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Avg Clustering</span>
+      <span class="stat-value" id="statClustering">--</span>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="app-container">
+
+    <!-- Left Column: User Selection & Suggestions -->
+    <div class="sidebar">
+
+      <!-- Active User Card -->
+      <div class="user-selector-card">
+        <div class="selector-label">
+          <span>Target User Context</span>
+          <span id="targetUserBadge" style="color: var(--accent); font-size: 0.7rem;">Normal</span>
+        </div>
+        <select id="userSelect" class="user-select" onchange="onUserChanged(this.value)">
+          <option value="">Loading network users...</option>
+        </select>
+
+        <div class="quick-presets">
+          <span style="font-size: 0.7rem; color: var(--text-subtle); align-self: center;">Quick Demo:</span>
+          <button class="preset-btn" onclick="selectPreset('newbie_sam')">Cold Start (Sam)</button>
+          <button class="preset-btn" onclick="selectPreset('newbie_jess')">0-Edge (Jessica)</button>
+          <button class="preset-btn" onclick="selectPreset('user_001')">Supernode Hub</button>
+        </div>
+
+        <div class="profile-banner" id="activeProfileBanner">
+          <img id="userAvatar" class="profile-avatar" src="" alt="avatar" />
+          <div class="profile-info">
+            <div id="userName" class="profile-name">Loading...</div>
+            <div id="userMeta" class="profile-meta">--</div>
+            <div id="userTags" class="tag-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- People You May Know -->
+      <div class="recs-section">
+        <div class="recs-header">
+          <div class="recs-title">
+            <span>People You May Know</span>
+            <span class="badge-count" id="recCount">0</span>
+          </div>
+          <span style="font-size: 0.75rem; color: var(--text-subtle);">Ranked by Adamic-Adar & PPR</span>
+        </div>
+
+        <div id="recsList" class="recs-list">
+          <div class="empty-state">Loading recommendations...</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Interactive Graph Visualizer -->
+    <div class="main-panel">
+      <div class="view-card">
+        <div class="view-header">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div class="view-title">
+              <span>Social Graph Visualizer</span>
+            </div>
+            <!-- Graph Mode Switcher -->
+            <div class="view-mode-pills">
+              <button class="pill-btn active" id="modeOrbitBtn" onclick="setGraphMode('orbit')">🪐 Orbit Radar (Clean)</button>
+              <button class="pill-btn" id="modeForceBtn" onclick="setGraphMode('force')">🕸️ Full Network</button>
+            </div>
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; user-select: none;">
+              <input type="checkbox" id="focusModeCheck" checked onchange="toggleFocusMode(this.checked)">
+              <span>Focus Circle</span>
+            </label>
+          </div>
+          <div class="tabs">
+            <button class="tab-btn active" id="tabGraphBtn" onclick="switchView('graph')">Live Graph</button>
+            <button class="tab-btn" id="tabDsaBtn" onclick="switchView('dsa')">
+              <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; font-weight: 700; margin-right: 4px;">DSA</span>
+              DSA Learning Lab
+            </button>
+            <button class="tab-btn" id="tabInspectorBtn" onclick="switchView('inspector')">Algorithm Inspector</button>
+          </div>
+        </div>
+
+        <!-- Canvas View -->
+        <div class="canvas-container" id="canvasView">
+          <canvas id="graphCanvas"></canvas>
+          <div id="nodeTooltip" class="node-tooltip"></div>
+
+          <div class="canvas-legend">
+            <div class="legend-item"><div class="legend-dot" style="background: #f43f5e; box-shadow: 0 0 8px #f43f5e;"></div><span>Selected User (Center)</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background: #10b981; box-shadow: 0 0 6px #10b981;"></div><span>Direct Friends (Level 1)</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background: #a855f7; box-shadow: 0 0 6px #a855f7;"></div><span>Suggested Candidates (Level 2)</span></div>
+          </div>
+
+          <div class="canvas-controls">
+            <button class="ctrl-btn" onclick="zoomCanvas(1.2)" title="Zoom In">+</button>
+            <button class="ctrl-btn" onclick="zoomCanvas(0.8)" title="Zoom Out">−</button>
+            <button class="ctrl-btn" onclick="resetCanvasTransform()" title="Reset View">⟲</button>
+          </div>
+        </div>
+
+        <!-- DSA Learning Lab Tab (Beginner Friendly) -->
+        <div class="inspector-content" id="dsaLabView">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff;">🎓 DSA Learning Lab: Core Data Structures</h3>
+              <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; font-weight: 700;">Beginner Friendly</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+              See how a real social network friend suggestion engine is built using standard Computer Science Data Structures.
+            </p>
+          </div>
+
+          <!-- 4 Core Data Structures Grid -->
+          <div class="comparison-grid">
+            <div class="comp-card" style="border-top: 3px solid #38bdf8;">
+              <span class="comp-title">1. Graph (Adjacency List)</span>
+              <span class="comp-val" style="font-size: 1.1rem; color: #38bdf8;">Hash Map + Sets</span>
+              <span class="comp-desc">
+                Stored as <code>Dict[str, Set[str]]</code>. Checking if two users are friends takes <strong>O(1)</strong> time instead of searching an entire array.
+              </span>
+            </div>
+
+            <div class="comp-card" style="border-top: 3px solid #a855f7;">
+              <span class="comp-title">2. Queue (FIFO) - BFS</span>
+              <span class="comp-val" style="font-size: 1.1rem; color: #a855f7;">collections.deque</span>
+              <span class="comp-desc">
+                Level-by-level exploration. Level 0 = You, Level 1 = Direct Friends, <strong>Level 2 = Recommendation Candidates</strong>!
+              </span>
+            </div>
+
+            <div class="comp-card" style="border-top: 3px solid #10b981;">
+              <span class="comp-title">3. Hash Set (Mutuals)</span>
+              <span class="comp-val" style="font-size: 1.1rem; color: #10b981;">Set Intersection &amp;</span>
+              <span class="comp-desc">
+                <code>set_A &amp; set_B</code> computes mutual friends in <strong>O(min(|A|, |B|))</strong> time with zero duplicate checks needed.
+              </span>
+            </div>
+
+            <div class="comp-card" style="border-top: 3px solid #f59e0b;">
+              <span class="comp-title">4. Min-Heap (Priority Queue)</span>
+              <span class="comp-val" style="font-size: 1.1rem; color: #f59e0b;">heapq Module</span>
+              <span class="comp-desc">
+                Maintains Top-K suggestions in <strong>O(N log K)</strong> time. Avoids slow <strong>O(N log N)</strong> sorting of all candidates.
+              </span>
+            </div>
+          </div>
+
+          <!-- Live BFS Queue Trace Section -->
+          <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid var(--card-border); border-radius: 12px; padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+              <div>
+                <h4 style="font-size: 0.95rem; font-weight: 700;">Live BFS Queue &amp; Level Tracer</h4>
+                <p style="font-size: 0.78rem; color: var(--text-muted);">Watch the Queue (FIFO) discover Level 1 Friends and Level 2 Candidates in real time.</p>
+              </div>
+              <button class="btn btn-primary" style="font-size: 0.78rem; padding: 0.4rem 0.8rem;" onclick="runDsaTrace()">
+                ▶ Trace BFS Queue for Current User
+              </button>
+            </div>
+
+            <div id="dsaBfsOverview" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
+              <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 8px; padding: 0.75rem; text-align: center;">
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Level 0 (Start User)</div>
+                <div id="bfsL0" style="font-size: 1.1rem; font-weight: 800; color: #f43f5e; margin-top: 2px;">--</div>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 8px; padding: 0.75rem; text-align: center;">
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Level 1 (Direct Friends)</div>
+                <div id="bfsL1" style="font-size: 1.1rem; font-weight: 800; color: #10b981; margin-top: 2px;">--</div>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 8px; padding: 0.75rem; text-align: center;">
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Level 2 (Friend Candidates)</div>
+                <div id="bfsL2" style="font-size: 1.1rem; font-weight: 800; color: #a855f7; margin-top: 2px;">--</div>
+              </div>
+            </div>
+
+            <!-- Queue Log Steps -->
+            <div style="font-size: 0.75rem; color: var(--text-subtle); text-transform: uppercase; font-weight: 700; margin-bottom: 0.4rem;">
+              Step-by-Step FIFO Queue Log (First 10 operations)
+            </div>
+            <div id="dsaStepsLog" style="max-height: 200px; overflow-y: auto; font-family: var(--mono); font-size: 0.75rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 6px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem;">
+              <span style="color: var(--text-subtle);">Click "Trace BFS Queue for Current User" to view live Queue steps.</span>
+            </div>
+          </div>
+
+          <!-- DSA Complexity Cheat Sheet -->
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem;">
+            <div style="font-weight: 700; font-size: 0.85rem; color: #f3f4f6; margin-bottom: 0.5rem;">
+              📊 Data Structures &amp; Complexity Cheat Sheet (Beginner Reference)
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; text-align: left;">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
+                  <th style="padding: 6px;">Operation / Step</th>
+                  <th style="padding: 6px;">Data Structure Used</th>
+                  <th style="padding: 6px;">Time Complexity</th>
+                  <th style="padding: 6px;">Space Complexity</th>
+                </tr>
+              </thead>
+              <tbody style="color: var(--text);">
+                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
+                  <td style="padding: 6px;">Friendship Check <code>has_edge(u, v)</code></td>
+                  <td style="padding: 6px;">Hash Set in Dict</td>
+                  <td style="padding: 6px; font-family: var(--mono); color: #34d399;">O(1)</td>
+                  <td style="padding: 6px; font-family: var(--mono);">O(V + E)</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
+                  <td style="padding: 6px;">2-Hop Candidate Search</td>
+                  <td style="padding: 6px;">Queue (BFS)</td>
+                  <td style="padding: 6px; font-family: var(--mono); color: #38bdf8;">O(V + E)</td>
+                  <td style="padding: 6px; font-family: var(--mono);">O(V)</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
+                  <td style="padding: 6px;">Mutual Friends Discovery</td>
+                  <td style="padding: 6px;">Hash Set Intersection</td>
+                  <td style="padding: 6px; font-family: var(--mono); color: #34d399;">O(min(deg(u), deg(v)))</td>
+                  <td style="padding: 6px; font-family: var(--mono);">O(mutuals)</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px;">Top-K Recommendations</td>
+                  <td style="padding: 6px;">Min-Heap (heapq)</td>
+                  <td style="padding: 6px; font-family: var(--mono); color: #f59e0b;">O(N log K)</td>
+                  <td style="padding: 6px; font-family: var(--mono);">O(K)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Algorithm Comparator Tab -->
+        <div class="inspector-content" id="inspectorView">
+          <div>
+            <h3 style="font-size: 1.1rem; margin-bottom: 0.35rem;">Link Prediction Metric Comparator</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">
+              Select two nodes to calculate and compare raw common neighbors against Adamic-Adar (penalized hubs) and Personalized PageRank.
+            </p>
+          </div>
+
+          <div class="inspector-selectors">
+            <div>
+              <label class="selector-label">Node A (User)</label>
+              <select id="inspectNodeA" class="user-select" onchange="runComparison()"></select>
+            </div>
+            <div>
+              <label class="selector-label">Node B (Candidate)</label>
+              <select id="inspectNodeB" class="user-select" onchange="runComparison()"></select>
+            </div>
+          </div>
+
+          <div class="comparison-grid" id="compResults">
+            <!-- Populated via JS -->
+          </div>
+
+          <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 1rem;">
+            <div style="font-weight: 700; font-size: 0.85rem; color: #a5b4fc; margin-bottom: 0.3rem;">
+              💡 Algorithmic Insight: Why Adamic-Adar Outperforms Common Neighbors
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
+              If Node A and Node B both follow a celebrity hub with 5,000 connections, raw <code>Common Neighbors</code> adds 1 full point to their score, creating false recommendations. <code>Adamic-Adar</code> discounts this neighbor by <code>1 / log(5000) ≈ 0.117</code>. Conversely, if they share an intimate friend who only has 3 connections, Adamic-Adar weights it at <code>1 / log(3) ≈ 0.910</code> (nearly 8x more valuable!).
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Workflow & Architecture Modal -->
+  <div class="modal-overlay" id="workflowModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>GraphPulse Architecture & Workflow Specification</h2>
+        <button class="modal-close" onclick="closeWorkflowModal()">&times;</button>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-body">
+          <div class="flow-h">Problem & Pain Points</div>
+          <div class="flow-p">
+            <strong>Pain Point 1 (Cold Start):</strong> New users have zero connections; pure topological heuristics fail.<br>
+            <strong>Pain Point 2 (Supernode Hub Bias):</strong> High-degree celebrities pollute common neighbor calculations.<br>
+            <strong>Pain Point 3 (Scalability Bottleneck):</strong> Full-graph all-pairs traversal runs at O(V³) causing timeout failures.
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-body">
+          <div class="flow-h">Two-Stage Hybrid Retrieval Pipeline</div>
+          <div class="flow-p">
+            <strong>Stage 1 (Retrieval):</strong> 2-hop BFS neighborhood extracts potential candidates in &lt;1ms. If candidate count &lt; 15 (Cold Start), falls back to attribute & community nearest neighbors.<br>
+            <strong>Stage 2 (Ranking):</strong> Precision scorer computes weighted combination of Adamic-Adar, Jaccard Index, Personalized PageRank (Random Walk with Restart), and Interest Homophily.
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-body">
+          <div class="flow-h">MVP Validation & A/B Testing Plan</div>
+          <div class="flow-p">
+            <strong>Offline Metrics:</strong> Evaluated with Precision@K, Recall@K, and Mean Reciprocal Rank (MRR).<br>
+            <strong>Online A/B Testing:</strong> 10% canary traffic against baseline popularity model. Key KPIs: Invitation Send Rate (target +25%), Invitation Acceptance Rate (&gt;35%), and 30-Day Retention Lift.
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align: right; margin-top: 1.5rem;">
+        <button class="btn btn-primary" onclick="closeWorkflowModal()">Close Specification</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let currentUserId = "user_001";
+    let allUsers = [];
+    let graphData = { nodes: [], edges: [] };
+    let currentRecs = [];
+    let recommendedIds = new Set();
+    let currentFriends = new Set();
+
+    // Canvas & Physics State
+    const canvas = document.getElementById("graphCanvas");
+    const ctx = canvas.getContext("2d");
+    let simulationNodes = [];
+    let simulationEdges = [];
+    let zoomLevel = 1.0;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let dragNode = null;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+
+    // Community Color Map
+    const COMM_COLORS = {
+      "AI & Engineering": "#38bdf8",
+      "Design & Product": "#ec4899",
+      "Fintech & Crypto": "#10b981",
+      "BioTech & Science": "#eab308"
+    };
+
+    // Initialization
+    window.addEventListener("DOMContentLoaded", async () => {
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+      setupCanvasEvents();
+      await fetchAnalytics();
+      await loadUsers();
+      await loadGraph();
+      await refreshUser(currentUserId);
+      startSimulation();
+    });
+
+    function resizeCanvas() {
+      const container = document.getElementById("canvasView");
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
+
+    async function fetchAnalytics() {
+      try {
+        const res = await fetch("/api/analytics");
+        const data = await res.json();
+        document.getElementById("statNodes").innerText = data.total_users;
+        document.getElementById("statEdges").innerText = data.total_friendships;
+        document.getElementById("statAvgDeg").innerText = data.average_degree;
+        document.getElementById("statDensity").innerText = data.graph_density;
+        document.getElementById("statClustering").innerText = data.average_clustering_coefficient;
+      } catch (e) {
+        console.error("Failed to load analytics", e);
+      }
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch("/api/users");
+        const data = await res.json();
+        allUsers = data.users;
+
+        const select = document.getElementById("userSelect");
+        const inspectA = document.getElementById("inspectNodeA");
+        const inspectB = document.getElementById("inspectNodeB");
+
+        select.innerHTML = "";
+        inspectA.innerHTML = "";
+        inspectB.innerHTML = "";
+
+        allUsers.forEach(u => {
+          const opt = document.createElement("option");
+          opt.value = u.id;
+          opt.text = `${u.name} (${u.community}) - ${u.degree} friends`;
+          select.appendChild(opt);
+
+          const optA = opt.cloneNode(true);
+          const optB = opt.cloneNode(true);
+          inspectA.appendChild(optA);
+          inspectB.appendChild(optB);
+        });
+
+        if (allUsers.length > 1) {
+          inspectB.selectedIndex = 1;
+        }
+      } catch (e) {
+        console.error("Failed to load users", e);
+      }
+    }
+
+    async function loadGraph() {
+      try {
+        const res = await fetch("/api/graph?limit=120");
+        graphData = await res.json();
+
+        // Initialize simulation nodes
+        const width = canvas.width || 800;
+        const height = canvas.height || 600;
+
+        simulationNodes = graphData.nodes.map((n, i) => {
+          const angle = (i / graphData.nodes.length) * 2 * Math.PI;
+          const radius = 180 + Math.random() * 80;
+          return {
+            id: n.id,
+            name: n.name,
+            community: n.community,
+            degree: n.degree,
+            x: width / 2 + Math.cos(angle) * radius + (Math.random() - 0.5) * 40,
+            y: height / 2 + Math.sin(angle) * radius + (Math.random() - 0.5) * 40,
+            vx: 0,
+            vy: 0
+          };
+        });
+
+        const nodeMap = new Map(simulationNodes.map(n => [n.id, n]));
+        simulationEdges = graphData.edges
+          .filter(e => nodeMap.has(e.source) && nodeMap.has(e.target))
+          .map(e => ({
+            source: nodeMap.get(e.source),
+            target: nodeMap.get(e.target)
+          }));
+
+      } catch (e) {
+        console.error("Failed to load graph", e);
+      }
+    }
+
+    async function refreshUser(userId) {
+      currentUserId = userId;
+      document.getElementById("userSelect").value = userId;
+
+      // Fetch user profile
+      try {
+        const res = await fetch(`/api/user/${userId}`);
+        const user = await res.json();
+
+        document.getElementById("userName").innerText = user.name;
+        document.getElementById("userAvatar").src = user.avatar;
+        document.getElementById("userMeta").innerText = `${user.city || 'Global'} • ${user.degree} Friends • Clustering: ${user.clustering_coefficient}`;
+
+        const tagsEl = document.getElementById("userTags");
+        tagsEl.innerHTML = `<span class="tag tag-comm">${user.community}</span>`;
+        (user.interests || []).slice(0, 3).forEach(t => {
+          tagsEl.innerHTML += `<span class="tag">#${t}</span>`;
+        });
+
+        // Cold-start badge
+        const badge = document.getElementById("targetUserBadge");
+        if (user.degree === 0) {
+          badge.innerText = "0-Edge Cold Start";
+          badge.style.color = "#ef4444";
+        } else if (user.degree <= 2) {
+          badge.innerText = "Sparse Cold Start";
+          badge.style.color = "#f59e0b";
+        } else if (user.degree > 15) {
+          badge.innerText = "Supernode Hub";
+          badge.style.color = "#ec4899";
+        } else {
+          badge.innerText = "Active Network";
+          badge.style.color = "#10b981";
+        }
+
+        currentFriends = new Set((user.friends || []).map(f => f.id));
+
+        // Fetch recommendations
+        await fetchRecommendations(userId);
+      } catch (e) {
+        console.error("Error refreshing user", e);
+      }
+    }
+
+    async function fetchRecommendations(userId) {
+      try {
+        const res = await fetch(`/api/recommendations/${userId}?limit=6`);
+        const data = await res.json();
+        currentRecs = data.recommendations || [];
+        recommendedIds = new Set(currentRecs.map(r => r.user_id));
+
+        document.getElementById("recCount").innerText = currentRecs.length;
+        renderRecommendations(currentRecs);
+      } catch (e) {
+        console.error("Failed to load recommendations", e);
+      }
+    }
+
+    function renderRecommendations(recs) {
+      const container = document.getElementById("recsList");
+      if (!recs || recs.length === 0) {
+        container.innerHTML = `<div class="empty-state">No recommendations available. All candidates in network already connected or dismissed.</div>`;
+        return;
+      }
+
+      container.innerHTML = recs.map(r => `
+        <div class="rec-card" id="card-${r.user_id}">
+          <div class="rec-header">
+            <img class="rec-avatar" src="${r.avatar}" alt="${r.name}" />
+            <div class="rec-identity">
+              <div class="rec-name" title="${r.name}">${r.name}</div>
+              <div class="rec-location">${r.city} • <span style="color: ${COMM_COLORS[r.community] || '#9ca3af'}; font-weight: 600;">${r.community}</span></div>
+            </div>
+            <div class="rec-score-pill">
+              <span class="score-val">${Math.round(r.score)}%</span>
+              <span class="score-sub">Match</span>
+            </div>
+          </div>
+
+          <div class="rec-metrics">
+            <div class="metric-item">
+              <span class="metric-name">Adamic-Adar</span>
+              <span class="metric-num">${r.metrics.adamic_adar.toFixed(2)}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-name">Jaccard Sim</span>
+              <span class="metric-num">${(r.metrics.jaccard * 100).toFixed(0)}%</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-name">Mutuals</span>
+              <span class="metric-num">${r.mutual_friends_count}</span>
+            </div>
+          </div>
+
+          <div class="rec-reasons">
+            ${r.reasons.map(reason => `<div class="reason-bullet"><span>•</span> <span>${reason}</span></div>`).join("")}
+          </div>
+
+          <div class="rec-actions">
+            <button class="btn-connect" onclick="connectFriend('${r.user_id}')">+ Connect</button>
+            <button class="btn-dismiss" onclick="dismissFriend('${r.user_id}')">Dismiss</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function connectFriend(targetId) {
+      try {
+        const res = await fetch("/api/friend", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: currentUserId, target_id: targetId })
+        });
+        const result = await res.json();
+        if (result.success) {
+          // Add edge in local simulation
+          const uNode = simulationNodes.find(n => n.id === currentUserId);
+          const vNode = simulationNodes.find(n => n.id === targetId);
+          if (uNode && vNode) {
+            simulationEdges.push({ source: uNode, target: vNode });
+          }
+
+          await fetchAnalytics();
+          await loadUsers();
+          await refreshUser(currentUserId);
+        }
+      } catch (e) {
+        console.error("Connect failed", e);
+      }
+    }
+
+    async function dismissFriend(candidateId) {
+      try {
+        await fetch("/api/dismiss", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: currentUserId, candidate_id: candidateId })
+        });
+
+        // Animate card removal
+        const card = document.getElementById(`card-${candidateId}`);
+        if (card) {
+          card.style.opacity = "0";
+          card.style.transform = "translateX(20px)";
+          setTimeout(() => refreshUser(currentUserId), 200);
+        }
+      } catch (e) {
+        console.error("Dismiss failed", e);
+      }
+    }
+
+    async function resetNetwork() {
+      if (confirm("Reset network graph to default seed state?")) {
+        await fetch("/api/reset", { method: "POST" });
+        await fetchAnalytics();
+        await loadUsers();
+        await loadGraph();
+        await refreshUser(currentUserId);
+      }
+    }
+
+    function onUserChanged(uid) {
+      if (uid) refreshUser(uid);
+    }
+
+    function selectPreset(presetId) {
+      refreshUser(presetId);
+    }
+
+    // View Switching
+    function switchView(tab) {
+      const graphBtn = document.getElementById("tabGraphBtn");
+      const dsaBtn = document.getElementById("tabDsaBtn");
+      const inspBtn = document.getElementById("tabInspectorBtn");
+      const canvasView = document.getElementById("canvasView");
+      const dsaLabView = document.getElementById("dsaLabView");
+      const inspectorView = document.getElementById("inspectorView");
+
+      graphBtn.classList.remove("active");
+      dsaBtn.classList.remove("active");
+      inspBtn.classList.remove("active");
+      canvasView.style.display = "none";
+      dsaLabView.style.display = "none";
+      inspectorView.style.display = "none";
+
+      if (tab === "graph") {
+        graphBtn.classList.add("active");
+        canvasView.style.display = "block";
+      } else if (tab === "dsa") {
+        dsaBtn.classList.add("active");
+        dsaLabView.style.display = "flex";
+        runDsaTrace();
+      } else {
+        inspBtn.classList.add("active");
+        inspectorView.style.display = "flex";
+        runComparison();
+      }
+    }
+
+    async function runDsaTrace() {
+      if (!currentUserId) return;
+      try {
+        const res = await fetch(`/api/dsa/trace/${currentUserId}`);
+        const data = await res.json();
+
+        document.getElementById("bfsL0").innerText = currentUserId;
+        document.getElementById("bfsL1").innerText = `${data.level_1_direct_friends_count} Friends`;
+        document.getElementById("bfsL2").innerText = `${data.level_2_candidates_count} Candidates`;
+
+        const logEl = document.getElementById("dsaStepsLog");
+        if (data.trace_steps && data.trace_steps.length > 0) {
+          logEl.innerHTML = data.trace_steps.slice(0, 15).map(s => `
+            <div>
+              <span style="color: #818cf8; font-weight: bold;">[Step ${s.step}]</span>
+              <span style="color: ${s.level === 0 ? '#f43f5e' : (s.level === 1 ? '#10b981' : '#a855f7')};">${s.action}</span>
+              <span style="color: var(--text-subtle);"> | Queue size: ${s.queue_size_after}</span>
+              ${s.enqueued_neighbors && s.enqueued_neighbors.length > 0 ? `<div style="padding-left: 1.5rem; color: #9ca3af;">└─ Enqueued to Queue (FIFO): ${s.enqueued_neighbors.join(", ")}</div>` : ''}
+            </div>
+          `).join("");
+        }
+      } catch (e) {
+        console.error("Failed to load DSA trace", e);
+      }
+    }
+
+    async function runComparison() {
+      const u = document.getElementById("inspectNodeA").value;
+      const v = document.getElementById("inspectNodeB").value;
+      if (!u || !v) return;
+
+      try {
+        const res = await fetch(`/api/compare?u=${u}&v=${v}`);
+        const data = await res.json();
+        const grid = document.getElementById("compResults");
+
+        grid.innerHTML = `
+          <div class="comp-card">
+            <span class="comp-title">Direct Connection</span>
+            <span class="comp-val" style="color: ${data.has_direct_edge ? '#10b981' : '#f59e0b'}">${data.has_direct_edge ? 'ALREADY FRIENDS' : 'POTENTIAL LINK'}</span>
+            <span class="comp-desc">${data.has_direct_edge ? 'Edge exists in graph' : 'Candidate for link prediction'}</span>
+          </div>
+          <div class="comp-card">
+            <span class="comp-title">Common Neighbors</span>
+            <span class="comp-val">${data.common_neighbors_count}</span>
+            <span class="comp-desc">Raw intersection |Γ(u) ∩ Γ(v)|: ${data.common_neighbors.slice(0, 3).join(', ') || 'None'}</span>
+          </div>
+          <div class="comp-card">
+            <span class="comp-title">Adamic-Adar Index</span>
+            <span class="comp-val" style="color: #818cf8;">${data.adamic_adar_index}</span>
+            <span class="comp-desc">Penalizes hubs: ∑ 1/log(deg(z))</span>
+          </div>
+          <div class="comp-card">
+            <span class="comp-title">Jaccard Similarity</span>
+            <span class="comp-val">${(data.jaccard_similarity * 100).toFixed(1)}%</span>
+            <span class="comp-desc">Ratio of shared friends to union</span>
+          </div>
+          <div class="comp-card">
+            <span class="comp-title">Resource Allocation</span>
+            <span class="comp-val">${data.resource_allocation_index}</span>
+            <span class="comp-desc">Steeper hub penalty: ∑ 1/deg(z)</span>
+          </div>
+          <div class="comp-card">
+            <span class="comp-title">Shared Interests</span>
+            <span class="comp-val" style="color: #38bdf8;">${(data.interest_similarity * 100).toFixed(0)}%</span>
+            <span class="comp-desc">Homophily across user profile tags</span>
+          </div>
+        `;
+      } catch (e) {
+        console.error("Comparison failed", e);
+      }
+    }
+
+    // Modal
+    function openWorkflowModal() {
+      document.getElementById("workflowModal").style.display = "flex";
+    }
+    function closeWorkflowModal() {
+      document.getElementById("workflowModal").style.display = "none";
+    }
+
+    // Visualizer State
+    let graphMode = 'orbit'; // 'orbit' (clean concentric radar) or 'force' (physics web)
+    let focusMode = true;
+    let hoveredNode = null;
+    let animPulse = 0;
+
+    function setGraphMode(mode) {
+      graphMode = mode;
+      document.getElementById("modeOrbitBtn").classList.toggle("active", mode === 'orbit');
+      document.getElementById("modeForceBtn").classList.toggle("active", mode === 'force');
+      resetCanvasTransform();
+    }
+
+    function toggleFocusMode(val) {
+      focusMode = val;
+    }
+
+    function getInitials(name) {
+      if (!name) return "??";
+      const parts = name.trim().split(" ");
+      if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    // Force Simulation & Canvas Renderer
+    function startSimulation() {
+      function tick() {
+        const width = canvas.width;
+        const height = canvas.height;
+        const k = 0.05; // spring stiffness
+        const repulsion = 450;
+        const centerGravity = 0.02;
+
+        // Repulsion among nodes
+        for (let i = 0; i < simulationNodes.length; i++) {
+          const n1 = simulationNodes[i];
+          for (let j = i + 1; j < simulationNodes.length; j++) {
+            const n2 = simulationNodes[j];
+            const dx = n2.x - n1.x;
+            const dy = n2.y - n1.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            if (dist < 220) {
+              const force = (repulsion / (dist * dist));
+              const fx = (dx / dist) * force;
+              const fy = (dy / dist) * force;
+              n1.vx -= fx;
+              n1.vy -= fy;
+              n2.vx += fx;
+              n2.vy += fy;
+            }
+          }
+
+          // Center gravity
+          n1.vx += (width / 2 - n1.x) * centerGravity;
+          n1.vy += (height / 2 - n1.y) * centerGravity;
+        }
+
+        // Spring attraction for edges
+        for (let e of simulationEdges) {
+          const n1 = e.source;
+          const n2 = e.target;
+          const dx = n2.x - n1.x;
+          const dy = n2.y - n1.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          const desired = 85;
+          const force = (dist - desired) * k;
+          const fx = (dx / dist) * force;
+          const fy = (dy / dist) * force;
+          n1.vx += fx;
+          n1.vy += fy;
+          n2.vx -= fx;
+          n2.vy -= fy;
+        }
+
+        // Apply velocities with damping
+        const damping = 0.88;
+        for (let n of simulationNodes) {
+          if (n !== dragNode) {
+            n.vx *= damping;
+            n.vy *= damping;
+            n.x += n.vx;
+            n.y += n.vy;
+          }
+        }
+
+        drawGraph();
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    function drawGraph() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(panX, panY);
+      ctx.scale(zoomLevel, zoomLevel);
+
+      const width = canvas.width;
+      const height = canvas.height;
+      const cx = width / 2;
+      const cy = height / 2;
+
+      if (graphMode === 'orbit') {
+        drawOrbitRadar(cx, cy);
+      } else {
+        drawForceNetwork();
+      }
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // MODE A: CLEAN CONCENTRIC ORBIT RADAR (Modern, Clean & Clutter-Free)
+    // =========================================================================
+    function drawOrbitRadar(cx, cy) {
+      const R_FRIENDS = 145;
+      const R_RECS = 255;
+
+      // Draw Orbit Track 1 (Direct Friends)
+      ctx.beginPath();
+      ctx.arc(cx, cy, R_FRIENDS, 0, 2 * Math.PI);
+      ctx.strokeStyle = "rgba(16, 185, 129, 0.22)";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Label Orbit 1
+      ctx.font = "bold 9px 'Plus Jakarta Sans', sans-serif";
+      ctx.fillStyle = "rgba(16, 185, 129, 0.7)";
+      ctx.textAlign = "center";
+      ctx.fillText("DIRECT FRIENDS (LEVEL 1)", cx, cy - R_FRIENDS - 6);
+
+      // Draw Orbit Track 2 (Friend Recommendations)
+      ctx.beginPath();
+      ctx.arc(cx, cy, R_RECS, 0, 2 * Math.PI);
+      ctx.strokeStyle = "rgba(168, 85, 247, 0.22)";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([8, 8]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Label Orbit 2
+      ctx.fillStyle = "rgba(168, 85, 247, 0.7)";
+      ctx.fillText("SUGGESTED FRIENDS (LEVEL 2 CANDIDATES)", cx, cy - R_RECS - 6);
+
+      // 1. Center Node (Selected User)
+      const activeUser = allUsers.find(u => u.id === currentUserId) || { id: currentUserId, name: "Target User", community: "General" };
+      activeUser.x = cx;
+      activeUser.y = cy;
+
+      // 2. Position Friends on Orbit 1
+      const friendIds = Array.from(currentFriends).slice(0, 12);
+      const friendNodes = friendIds.map((fid, idx) => {
+        const u = allUsers.find(x => x.id === fid) || { id: fid, name: fid, community: "General" };
+        const angle = (idx / friendIds.length) * 2 * Math.PI - Math.PI / 2;
+        u.x = cx + Math.cos(angle) * R_FRIENDS;
+        u.y = cy + Math.sin(angle) * R_FRIENDS;
+        return u;
+      });
+
+      // 3. Position Recommendations on Orbit 2
+      const recNodes = currentRecs.slice(0, 8).map((r, idx) => {
+        const u = allUsers.find(x => x.id === r.user_id) || { id: r.user_id, name: r.name, community: r.community };
+        const angle = (idx / currentRecs.slice(0, 8).length) * 2 * Math.PI - Math.PI / 2 + 0.3;
+        u.x = cx + Math.cos(angle) * R_RECS;
+        u.y = cy + Math.sin(angle) * R_RECS;
+        u.score = r.score;
+        u.mutuals = r.mutual_friends_count;
+        return u;
+      });
+
+      // Draw Connection Links to Friends (Solid glowing emerald)
+      for (let f of friendNodes) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(f.x, f.y);
+        ctx.strokeStyle = "rgba(16, 185, 129, 0.55)";
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+
+        // Pulsing flow dot along friend link
+        const flowT = (animPulse * 0.8) % 1;
+        const fx = cx + (f.x - cx) * flowT;
+        const fy = cy + (f.y - cy) * flowT;
+        ctx.beginPath();
+        ctx.arc(fx, fy, 2.5, 0, 2 * Math.PI);
+        ctx.fillStyle = "#34d399";
+        ctx.fill();
+      }
+
+      // Draw Virtual Prediction Links to Recommendations (Dashed purple)
+      for (let r of recNodes) {
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(r.x, r.y);
+        ctx.strokeStyle = "rgba(168, 85, 247, 0.5)";
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Draw Center User Node
+      drawStyledNode(activeUser, cx, cy, 30, 'target', hoveredNode && hoveredNode.id === activeUser.id);
+
+      // Draw Friend Nodes
+      for (let f of friendNodes) {
+        drawStyledNode(f, f.x, f.y, 22, 'friend', hoveredNode && hoveredNode.id === f.id);
+      }
+
+      // Draw Recommendation Nodes
+      for (let r of recNodes) {
+        drawStyledNode(r, r.x, r.y, 24, 'rec', hoveredNode && hoveredNode.id === r.id);
+      }
+    }
+
+    // =========================================================================
+    // MODE B: FULL NETWORK PHYSICS (Upgraded with Avatar Badges)
+    // =========================================================================
+    function drawForceNetwork() {
+      // Draw Edges
+      for (let e of simulationEdges) {
+        const u = e.source;
+        const v = e.target;
+        const isCurrentEdge = (u.id === currentUserId || v.id === currentUserId);
+
+        if (focusMode && !isCurrentEdge) {
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
+          ctx.lineWidth = 0.5;
+        } else if (isCurrentEdge) {
+          ctx.strokeStyle = "rgba(16, 185, 129, 0.75)";
+          ctx.lineWidth = 2.2;
+        } else {
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+          ctx.lineWidth = 0.9;
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(u.x, u.y);
+        ctx.lineTo(v.x, v.y);
+        ctx.stroke();
+      }
+
+      // Draw Nodes
+      for (let n of simulationNodes) {
+        const isSelected = (n.id === currentUserId);
+        const isFriend = currentFriends.has(n.id);
+        const isRec = recommendedIds.has(n.id);
+
+        if (focusMode && !isSelected && !isFriend && !isRec) {
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, 4, 0, 2 * Math.PI);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
+          ctx.fill();
+          continue;
+        }
+
+        let type = 'other';
+        let radius = 18;
+        if (isSelected) { type = 'target'; radius = 28; }
+        else if (isRec) { type = 'rec'; radius = 22; }
+        else if (isFriend) { type = 'friend'; radius = 20; }
+
+        drawStyledNode(n, n.x, n.y, radius, type, hoveredNode && hoveredNode.id === n.id);
+      }
+    }
+
+    // =========================================================================
+    // STYLED NODE CARD DRAWING: Modern Circular Avatar Badges with Initials
+    // =========================================================================
+    function drawStyledNode(node, x, y, radius, type, isHovered) {
+      ctx.save();
+
+      // Pulsing outer halo for target user
+      if (type === 'target') {
+        const pulseSize = radius + 8 + Math.sin(animPulse * 3) * 4;
+        ctx.beginPath();
+        ctx.arc(x, y, pulseSize, 0, 2 * Math.PI);
+        ctx.fillStyle = "rgba(244, 63, 94, 0.22)";
+        ctx.fill();
+      } else if (type === 'rec') {
+        ctx.beginPath();
+        ctx.arc(x, y, radius + 5, 0, 2 * Math.PI);
+        ctx.fillStyle = "rgba(168, 85, 247, 0.22)";
+        ctx.fill();
+      } else if (type === 'friend') {
+        ctx.beginPath();
+        ctx.arc(x, y, radius + 4, 0, 2 * Math.PI);
+        ctx.fillStyle = "rgba(16, 185, 129, 0.2)";
+        ctx.fill();
+      }
+
+      // Hover glow
+      if (isHovered) {
+        ctx.beginPath();
+        ctx.arc(x, y, radius + 8, 0, 2 * Math.PI);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+        ctx.fill();
+      }
+
+      // Base Circle Fill
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, 2 * Math.PI);
+
+      if (type === 'target') {
+        const grad = ctx.createRadialGradient(x - radius/3, y - radius/3, 2, x, y, radius);
+        grad.addColorStop(0, "#fb7185");
+        grad.addColorStop(1, "#e11d48");
+        ctx.fillStyle = grad;
+      } else if (type === 'friend') {
+        const grad = ctx.createRadialGradient(x - radius/3, y - radius/3, 2, x, y, radius);
+        grad.addColorStop(0, "#10b981");
+        grad.addColorStop(1, "#047857");
+        ctx.fillStyle = grad;
+      } else if (type === 'rec') {
+        const grad = ctx.createRadialGradient(x - radius/3, y - radius/3, 2, x, y, radius);
+        grad.addColorStop(0, "#c084fc");
+        grad.addColorStop(1, "#7e22ce");
+        ctx.fillStyle = grad;
+      } else {
+        ctx.fillStyle = "#1e293b";
+      }
+      ctx.fill();
+
+      // Border Ring
+      ctx.lineWidth = type === 'target' ? 2.5 : 2.0;
+      ctx.strokeStyle = type === 'target' ? "#ffffff" : (type === 'friend' ? "#34d399" : (type === 'rec' ? "#e9d5ff" : "#475569"));
+      ctx.stroke();
+
+      // Inner Text: Initials / YOU
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      if (type === 'target') {
+        ctx.font = "bold 11px 'Plus Jakarta Sans', sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("YOU", x, y);
+      } else {
+        ctx.font = "bold 10px 'Plus Jakarta Sans', sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(getInitials(node.name), x, y);
+      }
+
+      // Match % badge on top right for recommendations
+      if (type === 'rec' && node.score) {
+        const badgeX = x + radius - 4;
+        const badgeY = y - radius + 4;
+        ctx.beginPath();
+        ctx.arc(badgeX, badgeY, 9, 0, 2 * Math.PI);
+        ctx.fillStyle = "#10b981";
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.font = "bold 8px 'JetBrains Mono', monospace";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(`${Math.round(node.score)}`, badgeX, badgeY);
+      }
+
+      // Friend checkmark badge on top right
+      if (type === 'friend') {
+        const badgeX = x + radius - 3;
+        const badgeY = y - radius + 3;
+        ctx.beginPath();
+        ctx.arc(badgeX, badgeY, 7, 0, 2 * Math.PI);
+        ctx.fillStyle = "#10b981";
+        ctx.fill();
+        ctx.font = "bold 8px sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("✓", badgeX, badgeY);
+      }
+
+      // Name label tag underneath on dark pill
+      const firstName = (node.name || "").split(" ")[0];
+      ctx.font = "600 10px 'Plus Jakarta Sans', sans-serif";
+      const textWidth = ctx.measureText(firstName).width;
+      const pillW = textWidth + 14;
+      const pillH = 16;
+      const pillX = x - pillW / 2;
+      const pillY = y + radius + 4;
+
+      ctx.beginPath();
+      ctx.roundRect(pillX, pillY, pillW, pillH, 8);
+      ctx.fillStyle = "rgba(11, 15, 25, 0.88)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+
+      ctx.fillStyle = type === 'target' ? "#f43f5e" : (type === 'friend' ? "#6ee7b7" : (type === 'rec' ? "#d8b4fe" : "#e2e8f0"));
+      ctx.fillText(firstName, x, pillY + 8);
+
+      ctx.restore();
+    }
+
+    // Canvas Interactions & Hover Tooltip
+    function setupCanvasEvents() {
+      const tooltip = document.getElementById("nodeTooltip");
+
+      canvas.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        const mx = (mouseX - panX) / zoomLevel;
+        const my = (mouseY - panY) / zoomLevel;
+
+        let found = null;
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        if (graphMode === 'orbit') {
+          // Check center
+          if (Math.hypot(cx - mx, cy - my) < 34) {
+            found = allUsers.find(u => u.id === currentUserId) || { id: currentUserId, name: "You" };
+            found._type = 'target';
+          }
+          // Check friends
+          if (!found) {
+            const friendIds = Array.from(currentFriends).slice(0, 12);
+            for (let idx = 0; idx < friendIds.length; idx++) {
+              const angle = (idx / friendIds.length) * 2 * Math.PI - Math.PI / 2;
+              const fx = cx + Math.cos(angle) * 145;
+              const fy = cy + Math.sin(angle) * 145;
+              if (Math.hypot(fx - mx, fy - my) < 25) {
+                found = allUsers.find(u => u.id === friendIds[idx]);
+                if (found) found._type = 'friend';
+                break;
+              }
+            }
+          }
+          // Check recs
+          if (!found) {
+            const recSlice = currentRecs.slice(0, 8);
+            for (let idx = 0; idx < recSlice.length; idx++) {
+              const angle = (idx / recSlice.length) * 2 * Math.PI - Math.PI / 2 + 0.3;
+              const rx = cx + Math.cos(angle) * 255;
+              const ry = cy + Math.sin(angle) * 255;
+              if (Math.hypot(rx - mx, ry - my) < 28) {
+                found = allUsers.find(u => u.id === recSlice[idx].user_id) || recSlice[idx];
+                found._type = 'rec';
+                found._score = recSlice[idx].score;
+                found._mutuals = recSlice[idx].mutual_friends_count;
+                break;
+              }
+            }
+          }
+        } else {
+          for (let n of simulationNodes) {
+            if (Math.hypot(n.x - mx, n.y - my) < 24) {
+              found = n;
+              break;
+            }
+          }
+        }
+
+        hoveredNode = found;
+
+        if (found) {
+          canvas.style.cursor = "pointer";
+          if (tooltip) {
+            tooltip.style.display = "block";
+            tooltip.style.left = `${Math.min(mouseX + 15, canvas.width - 200)}px`;
+            tooltip.style.top = `${Math.min(mouseY + 15, canvas.height - 120)}px`;
+
+            let statusBadge = '<span style="color: #6ee7b7; font-weight: 700;">🤝 Direct Friend (Level 1)</span>';
+            if (found.id === currentUserId) {
+              statusBadge = '<span style="color: #f43f5e; font-weight: 800;">⭐ Selected User (Level 0)</span>';
+            } else if (recommendedIds.has(found.id)) {
+              statusBadge = `<span style="color: #c084fc; font-weight: 700;">🎯 Suggested (${found._score ? Math.round(found._score) + '% Match' : 'Level 2'})</span>`;
+            }
+
+            tooltip.innerHTML = `
+              <div style="font-weight: 800; font-size: 0.9rem; color: #fff;">${found.name}</div>
+              <div style="font-size: 0.72rem; color: #94a3b8; margin: 3px 0;">${found.community || 'General'} • ${found.city || 'Global'}</div>
+              <div style="font-size: 0.72rem; margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 4px;">
+                ${statusBadge}
+              </div>
+              <div style="font-size: 0.68rem; color: #818cf8; margin-top: 3px;">Click node to inspect their profile</div>
+            `;
+          }
+        } else {
+          canvas.style.cursor = isDragging ? "grabbing" : "grab";
+          if (tooltip) tooltip.style.display = "none";
+        }
+
+        if (dragNode) {
+          dragNode.x = mx;
+          dragNode.y = my;
+          dragNode.vx = 0;
+          dragNode.vy = 0;
+        } else if (isDragging) {
+          panX += (e.clientX - lastMouseX);
+          panY += (e.clientY - lastMouseY);
+          lastMouseX = e.clientX;
+          lastMouseY = e.clientY;
+        }
+      });
+
+      canvas.addEventListener("mousedown", (e) => {
+        if (hoveredNode) {
+          refreshUser(hoveredNode.id);
+          return;
+        }
+        isDragging = true;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+      });
+
+      window.addEventListener("mouseup", () => {
+        dragNode = null;
+        isDragging = false;
+      });
+
+      canvas.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.1 : 0.9;
+        zoomCanvas(factor);
+      });
+    }
+
+    function zoomCanvas(factor) {
+      zoomLevel = Math.max(0.4, Math.min(3.0, zoomLevel * factor));
+    }
+
+    function resetCanvasTransform() {
+      zoomLevel = 1.0;
+      panX = 0;
+      panY = 0;
+    }
+  </script>
+</body>
+</html>
+
